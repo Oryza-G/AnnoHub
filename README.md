@@ -9,7 +9,7 @@ Self-hosted image annotation server for Windows. One executable, one LAN address
 ![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
-![AnnoHub project list](docs/screenshots/01-projects.jpg)
+![AnnoHub annotation canvas with tile-level labels](docs/screenshots/04-annotate.jpg)
 
 ## Why this exists
 
@@ -33,8 +33,6 @@ Data never leaves the machine running the executable.
 
 **Export.** 6 formats × 10 split ratios × 6 scopes, packaged as a zip with a manifest and a format note. Detection and segmentation labels go to separate directories so a combined export does not overwrite itself.
 
-![Annotation canvas](docs/screenshots/04-annotate.jpg)
-
 ## Quick start
 
 **Prebuilt binary.** Download `AnnoHub.exe` from [Releases](https://github.com/Oryza-G/AnnoHub/releases/latest), put it in an empty folder, double-click it. The first run creates a `data` folder beside the executable. The browser opens at `http://127.0.0.1:8765`; sign in with `admin / admin123` and change the password. Windows SmartScreen will warn about an unsigned binary — that is expected, there is no code-signing certificate.
@@ -57,6 +55,8 @@ Set `ANNOTOHUB_DATA` to move the data directory somewhere other than `./data`.
 Create a project → pick a type and define classes → crop or import images → allocate tasks → annotate (optionally after a pre-label run) → export.
 
 Four project types: object detection, instance segmentation, image classification, and other (keypoints, polylines, oriented boxes — everything enabled). The type describes the main output, not a restriction on tools.
+
+![Project list](docs/screenshots/01-projects.jpg)
 
 The full operating guide is in [docs/manual.md](docs/manual.md) (Chinese).
 

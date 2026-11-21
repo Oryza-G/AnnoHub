@@ -9,7 +9,7 @@
 ![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
-![项目列表](docs/screenshots/01-projects.jpg)
+![标注界面](docs/screenshots/04-annotate.jpg)
 
 ## 为什么做这个
 
@@ -33,8 +33,6 @@ AnnoHub 面向中间那种情况：一台 Windows 工作站，一个共享盘，
 
 **导出。** 6 种格式 × 10 种划分比例 × 6 种导出范围，打成 zip，内含清单与格式说明。检测与分割同时导出时分目录存放，不会互相覆盖。
 
-![标注界面](docs/screenshots/04-annotate.jpg)
-
 ## 快速开始
 
 **用打包版。** 从 [Releases](https://github.com/Oryza-G/AnnoHub/releases/latest) 下载 `AnnoHub.exe`，放进一个空目录，双击运行。首次启动在 exe 同级生成 `data` 文件夹。浏览器自动打开 `http://127.0.0.1:8765`，用 `admin / admin123` 登录并立即改密码。Windows 会提示未知发布者，这是没有代码签名证书的正常现象。
@@ -57,6 +55,8 @@ python run.py
 新建项目 → 选类型与类别 → 裁切或导入图片 → 分配任务 → 标注（可先跑预标注）→ 导出。
 
 项目类型分四类：目标检测、实例分割、图像分类、其他。类型描述主要产出什么，不限制可用工具。关键点、折线、旋转框这类需求选「其他」，工具全开。
+
+![项目列表](docs/screenshots/01-projects.jpg)
 
 完整操作说明见 [使用手册](docs/manual.md)。
 
