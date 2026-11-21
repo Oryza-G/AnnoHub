@@ -6,7 +6,6 @@ Self-hosted image annotation server for Windows. One executable, one LAN address
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Oryza-G/AnnoHub)](https://github.com/Oryza-G/AnnoHub/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/Oryza-G/AnnoHub/total)](https://github.com/Oryza-G/AnnoHub/releases)
 ![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
