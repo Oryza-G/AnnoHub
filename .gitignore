@@ -33,3 +33,6 @@ desktop.ini
 tools/ui_check*.py
 tools/ui_shots.py
 tools/ui_test.py
+
+# 发布过程临时文件
+.release-notes*.md
