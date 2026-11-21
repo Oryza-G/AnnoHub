@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Read the manual first
+    url: https://github.com/Oryza-G/AnnoHub/blob/main/docs/manual.md
+    about: Covers deployment, firewall and LAN access, accounts, cropping, annotation, pre-labeling and export.
+  - name: "Colleagues cannot open the page"
+    url: https://github.com/Oryza-G/AnnoHub/blob/main/docs/manual.md
+    about: Almost always Windows Firewall blocking port 8765. Settings → LAN access → open port. See section 10 of the manual.
