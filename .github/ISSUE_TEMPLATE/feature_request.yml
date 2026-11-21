@@ -1,0 +1,51 @@
+name: Feature or format request
+description: A workflow AnnoHub does not support, or an import/export format that is missing.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Format requests go much faster with a sample. A few files and the directory layout you expect are usually enough.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: Describe the workflow, not the solution. What does your group do today, and where does AnnoHub stop you?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help
+      description: A concrete behaviour, a menu item, a format specification.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Image preparation and cropping
+        - Annotation tools
+        - Task allocation and progress
+        - Pre-labeling with ONNX
+        - Export format
+        - Import format
+        - Accounts and permissions
+        - Deployment and networking
+        - Interface
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you use instead right now
+      description: Another tool, a script, a manual step.
+    validations:
+      required: false

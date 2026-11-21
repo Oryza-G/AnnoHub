@@ -1,0 +1,81 @@
+name: Bug report
+description: Something behaves differently from what the documentation says.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: check that the port is reachable from the other machine, and that the version in the startup banner matches the Release you downloaded.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The line printed in the startup banner, or `AnnoHub.exe --list-users` output.
+      placeholder: "1.4.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: How are you running it
+      options:
+        - Packaged AnnoHub.exe
+        - From source (python run.py)
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 23H2"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps, starting from a known state.
+      placeholder: |
+        1. Create a project of type object detection
+        2. Crop 200 images with 15% overlap
+        3. Assign 50 images to a second account
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: Include error text or the HTTP status if you have it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output
+      description: Server console, or the browser console if the problem is in the UI. Screenshots are fine.
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: scale
+    attributes:
+      label: Dataset size, if relevant
+      description: Number of images in the project and how many people were annotating.
+    validations:
+      required: false

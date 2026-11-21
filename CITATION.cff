@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If AnnoHub contributed to a published dataset or model, please cite it using these fields."
+title: "AnnoHub: a self-hosted image annotation server for LAN-based dataset construction"
+abstract: "AnnoHub packages tile cropping, multi-user annotation with per-image leases, ONNX pre-labeling, and export to YOLO, Pascal VOC, COCO, and CSV into a single Windows executable that serves a browser interface over a local network."
+type: software
+authors:
+  - family-names: "Gao"
+    given-names: "Hengjie"
+version: "1.4.0"
+date-released: "2026-11-21"
+license: MIT
+repository-code: "https://github.com/Oryza-G/AnnoHub"
+url: "https://github.com/Oryza-G/AnnoHub"
+keywords:
+  - image annotation
+  - data labeling
+  - object detection
+  - instance segmentation
+  - remote sensing
+  - dataset construction

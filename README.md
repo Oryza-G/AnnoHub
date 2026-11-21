@@ -1,49 +1,46 @@
 # AnnoHub
 
-局域网多人协作图像标注平台。单文件部署在 Windows 主机上，成员用浏览器访问，客户端零安装。面向需要自建数据集的研究组与小团队，覆盖大图裁切、多人标注、模型预标注与多格式导出。
+**English** | [简体中文](README.zh-CN.md)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/Oryza-G/AnnoHub?label=release)](https://github.com/Oryza-G/AnnoHub/releases/latest)
-![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4)
+Self-hosted image annotation server for Windows. One executable, one LAN address, no Docker, no cloud account.
+
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Oryza-G/AnnoHub)](https://github.com/Oryza-G/AnnoHub/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Oryza-G/AnnoHub/total)](https://github.com/Oryza-G/AnnoHub/releases)
+![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
-![项目列表](docs/screenshots/01-projects.jpg)
+![AnnoHub project list](docs/screenshots/01-projects.jpg)
 
-## 解决的问题
+## Why this exists
 
-课题组要做目标检测，通常卡在同一处：几千张航拍大图要切成小图，切完要分给几个人标，标完要导成训练框架能读的格式。每一步都有现成工具，串起来却要人工搬数据、改路径、对类别名。
+A remote-sensing or plant-phenotyping group ends up with a few thousand drone images and a deadline. Four things have to happen: cut the images into tiles, hand the tiles to several people, stop two people from annotating the same tile, and export something Ultralytics can read.
 
-AnnoHub 把这四步放进同一个界面，数据始终留在本地，不依赖任何云服务。服务端与前端合并在一个可执行文件里，双击即用；成员在同一局域网用浏览器打开地址即可协作，不需要装 Python、不需要装客户端。
+Each step has a tool that does it well. Chaining them means copying folders by hand, fixing class-name mismatches, and reconciling three label formats before training. The projects that cover all four — CVAT, Label Studio — want Docker, someone to administer it, and usually a GPU machine.
 
-## 主要能力
+AnnoHub targets the case in between: a group with one Windows workstation, a shared drive, and no infrastructure budget. The server and the web UI ship as a single 49 MB executable. Double-click it, hand the printed address to your colleagues, and they annotate in a browser with no client install and no accounts on anyone else's cloud.
 
-| 环节 | 能力 |
-|---|---|
-| 图片准备 | 大图按指定窗口切块，支持重叠与贴边对齐；已裁好的图片整目录导入，哈希判重 |
-| 标注形式 | 矩形框、多边形、折线、点、画笔、整图分类，同一张图内可混用 |
-| 协作 | 图片级独占锁、心跳续期、任务分配、按成员与按分组统计进度 |
-| 预标注 | 导入 ONNX 模型（检测、分割、分类），单张、勾选若干张、整批三种跑法 |
-| 导出 | YOLO 检测、YOLO 分割、YOLO 分类、Pascal VOC、COCO、CSV，十种划分比例 |
-| 数据交换 | 读入 YOLO txt、VOC xml、COCO json、LabelMe json、CSV 五种既有标注 |
-| 账号 | 自助注册、注册审批、角色区分、命令行重置管理员密码 |
-| 界面 | 明亮、深色、护眼三套主题，全站可切换并记忆 |
+Data never leaves the machine running the executable.
 
-![标注界面](docs/screenshots/04-annotate.jpg)
+## What it handles
 
-## 快速开始
+**Prepare images.** Cut a 12000×9000 mosaic into 640×640 tiles with configurable overlap and edge alignment, in JPG or PNG. Or import an existing folder of tiles and deduplicate by content hash.
 
-### 方式一：直接用打包版
+**Annotate.** Rectangles, polygons, polylines, points, a freehand brush that closes into a polygon, and whole-image classification. All drawing tools stay available in every project type except classification — the type only decides which tool is preselected and which export format is the default.
 
-1. 从 [Releases](https://github.com/Oryza-G/AnnoHub/releases/latest) 下载 `AnnoHub.exe`（约 49 MB），放进一个空目录。
-2. 双击运行。首次启动在同目录生成 `data` 文件夹。
-3. 浏览器自动打开 `http://127.0.0.1:8765`，用 `admin / admin123` 登录。
-4. 把启动窗口中打印的地址发给同事，他们用浏览器打开即可。
+**Share the work.** Self-service sign-up with admin approval, role assignment, and task allocation by member or by source group. Progress counts per member, per group, per project.
 
-关闭控制台窗口即停止服务。
+**Pre-label.** Load an ONNX model — detection, instance segmentation, or classification — and run it on one image, a selection, or a whole batch. Review and correct instead of drawing from zero. No PyTorch or CUDA required; onnxruntime on CPU is enough for tile-sized inference.
 
-### 方式二：从源码运行
+**Export.** 6 formats × 10 split ratios × 6 scopes, packaged as a zip with a manifest and a format note. Detection and segmentation labels go to separate directories so a combined export does not overwrite itself.
 
-要求 Python 3.10 以上。
+![Annotation canvas](docs/screenshots/04-annotate.jpg)
+
+## Quick start
+
+**Prebuilt binary.** Download `AnnoHub.exe` from [Releases](https://github.com/Oryza-G/AnnoHub/releases/latest), put it in an empty folder, double-click it. The first run creates a `data` folder beside the executable. The browser opens at `http://127.0.0.1:8765`; sign in with `admin / admin123` and change the password. Windows SmartScreen will warn about an unsigned binary — that is expected, there is no code-signing certificate.
+
+**From source.** Python 3.10 or newer.
 
 ```bash
 git clone https://github.com/Oryza-G/AnnoHub.git
@@ -52,102 +49,109 @@ pip install -r requirements.txt
 python run.py
 ```
 
-数据目录默认在项目下的 `data`，可用环境变量 `ANNOTOHUB_DATA` 指向其他位置。
+Set `ANNOTOHUB_DATA` to move the data directory somewhere other than `./data`.
 
-### 局域网访问
+**Letting colleagues in.** The server listens on `0.0.0.0:8765`. If their browsers cannot reach it, the port is almost always blocked by Windows Firewall. Run the program once as administrator, or open Settings → LAN access → open port and confirm the system prompt. The same page shows every adapter address with a copy button, plus a short message you can paste into a group chat.
 
-默认监听 `0.0.0.0:8765`。同事打不开页面，多数情况是防火墙未放行端口：
+## Workflow
 
-- 以管理员身份运行一次程序，启动时自动添加放行规则；
-- 或在「设置 → 局域网访问」点「一键放行端口」，在系统弹窗中确认。
+Create a project → pick a type and define classes → crop or import images → allocate tasks → annotate (optionally after a pre-label run) → export.
 
-设置页同时提供计算机名与各网卡 IP 的复制框，以及一段可直接转发给成员的说明。
+Four project types: object detection, instance segmentation, image classification, and other (keypoints, polylines, oriented boxes — everything enabled). The type describes the main output, not a restriction on tools.
 
-## 使用流程
+The full operating guide is in [docs/manual.md](docs/manual.md) (Chinese).
 
-新建项目 → 选项目类型与类别 → 裁切或导入图片 → 分配任务 → 标注（可先跑预标注）→ 导出训练集。
+## Concurrent editing
 
-项目类型有四类：目标检测、实例分割、图像分类、其他。类型只描述主要产出什么，不限制标注工具，除图像分类外画布上的五种工具随时可切换。
+Two people opening the same image is the failure mode that silently destroys work in a shared annotation folder. AnnoHub prevents it at the image level instead of the project level:
 
-完整操作说明见 [使用手册](docs/manual.md)。
+- Opening an image takes a lease. The client renews every 30 seconds; a lease that goes 90 seconds without renewal is released automatically, so a crashed browser does not lock an image forever.
+- Saving carries the version the client started from. If someone else saved in between, the write is rejected with `409` and the client is told to reload, rather than overwriting their work.
 
-## 导出的数据集结构
+Geometry is stored as `geom_type` plus `geom_json`, with rectangles also duplicated into `x1/y1/x2/y2` columns for fast filtering and statistics. Coordinates are original-image pixels; scaling happens only at render time, so exports are never rounded.
 
-YOLO 检测：
+## Export formats
+
+| Format | Structure |
+|---|---|
+| YOLO detection | `images/` `labels/` `data.yaml` |
+| YOLO segmentation | `images/` `labels/` with polygon vertices |
+| YOLO classification | `images/{train,val}/{class}/` |
+| Pascal VOC | `JPEGImages/` `Annotations/` `ImageSets/` |
+| COCO | `instances_{split}.json`, with `segmentation` and `keypoints` |
+| CSV | One row per annotation, original coordinates |
+
+A YOLO detection package contains:
 
 ```
-images/train/  images/val/
-labels/train/  labels/val/
+images/train/  images/val/  images/test/
+labels/train/  labels/val/  labels/test/
 data.yaml
 manifest.csv
-README.txt
+README_yolo.txt
 ```
 
-同时勾选检测与分割时，标签分目录输出为 `labels/` 与 `labels_seg/`，避免互相覆盖；包内附 `README_yolo.txt` 说明对应关系。
+Splits are `none`, `9:1`, `8:2`, `7:3`, `3:1`, `1:1`, `8:1:1`, `7:2:1`, `6:2:2`, `7:1.5:1.5`. Scope can be limited to reviewed images, to your own images, to one source group, or widened to include unannotated images for a distribution check.
 
-分类任务导出为 ImageFolder 结构，可直接被 Ultralytics 或 `torchvision.datasets.ImageFolder` 读取。
+Existing annotations can be read back in: YOLO txt, Pascal VOC xml, COCO json, LabelMe json, and CSV. Useful for continuing a dataset that started elsewhere.
 
-| 格式 | 目录 |
+![Export page](docs/screenshots/07-export.jpg)
+
+## Command line
+
+| Flag | Effect |
 |---|---|
-| YOLO 检测 | `images/` `labels/` `data.yaml` |
-| YOLO 分割 | `images/` `labels/`（多边形顶点） |
-| YOLO 分类 | `images/{train,val}/{class}/` |
-| Pascal VOC | `JPEGImages/` `Annotations/` `ImageSets/` |
-| COCO | `instances_{split}.json` |
-| CSV | 单表，保留几何原始坐标 |
+| `--port N` | Port, default 8765 |
+| `--host A` | Bind address, default 0.0.0.0 |
+| `--no-browser` | Do not open a browser on start |
+| `--reset-admin [password]` | Reset the admin password and exit |
+| `--promote USER` | Grant admin to an existing account and exit |
+| `--list-users` | Print all accounts and exit |
 
-![导出页面](docs/screenshots/07-export.jpg)
+`AnnoHub.exe --reset-admin` is the recovery path when the only admin password is lost. The password returns to `admin123`.
 
-## 技术构成
+## Stack
 
-| 层 | 选型 |
+| Layer | Choice |
 |---|---|
-| 服务端 | FastAPI + uvicorn，SQLite（WAL） |
-| 前端 | 原生 JavaScript ES modules，零构建步骤 |
-| 图像 | Pillow |
-| 推理 | onnxruntime，CPU 即可运行，可换 GPU 版 |
-| 打包 | PyInstaller 单文件 |
-
-几何数据用 `geom_type` 加 `geom_json` 存储，矩形额外冗余 x1/y1/x2/y2 四列用于统计筛选。坐标为原图像素坐标，缩放只在渲染层发生，导出不做取整。
-
-并发用图片级租约锁：客户端每 30 秒心跳，90 秒未续期自动释放；保存时校验版本号，冲突返回 409 而不是覆盖他人工作。
-
-## 目录结构
+| Server | FastAPI + uvicorn, SQLite in WAL mode |
+| Frontend | Plain JavaScript ES modules, no build step |
+| Imaging | Pillow |
+| Inference | onnxruntime, CPU by default, GPU build works |
+| Packaging | PyInstaller, one file |
 
 ```
 annohub/
-├─ annohub/            后端：路由、数据库、裁切、导入、导出、推理
-├─ web/                前端：视图、样式、静态资源
-├─ tools/              辅助脚本（ONNX 导出、冒烟测试、截图）
-├─ docs/               使用手册与截图
-├─ run.py              启动器
-├─ build.spec          PyInstaller 打包配置
+├─ annohub/          server: routers, database, crop, import, export, inference
+├─ web/              frontend: views, styles, assets
+├─ tools/            helper scripts (ONNX export, smoke test, screenshots)
+├─ docs/             manual and screenshots
+├─ run.py            launcher
+├─ build.spec        PyInstaller configuration
 └─ requirements.txt
 ```
 
-运行后生成的 `data` 目录包含数据库、图片、缩略图、导出包与模型库，已在 `.gitignore` 中排除。
+## Limits
 
-## 命令行参数
+These are real, and worth reading before you commit a dataset to it.
 
-| 参数 | 作用 |
-|---|---|
-| `--port N` | 指定端口，默认 8765 |
-| `--host A` | 监听地址，默认 0.0.0.0 |
-| `--no-browser` | 不自动打开浏览器 |
-| `--reset-admin [密码]` | 重置管理员密码后退出 |
-| `--promote 用户名` | 提升指定账号为管理员后退出 |
-| `--list-users` | 列出全部账号后退出 |
+- ONNX only. A `.pt` file has to be exported first with `tools/export_onnx.py`.
+- Images, not video. No frame extraction, no DICOM series.
+- Built for a LAN. No TLS, no hardening against the public internet. Do not port-forward it.
+- Comfortable up to roughly 20,000 images per project and 8 concurrent annotators. Beyond that SQLite and a single uvicorn process will start to show.
+- Splits are random at image level, not stratified. With severe class imbalance, rebalance afterwards.
+- Windows only for the packaged binary. The source runs on Linux and macOS but is untested there.
 
-忘记管理员密码时，在程序目录执行 `AnnoHub.exe --reset-admin`，密码恢复为 `admin123`。
+## Contributing
 
-## 已知限制
+AnnoHub was written to solve one lab's problem, and released because the problem is common. It is a working tool rather than a finished product, and the areas that need help most are exactly the ones one person cannot test: other GPUs, other label conventions, other teams' habits.
 
-- 只接受 ONNX 模型，`.pt` 需先用 `tools/export_onnx.py` 转换。
-- 以静态图片为单位，不支持视频逐帧标注与 DICOM 序列。
-- 按局域网设计，未做 TLS 与公网加固，不建议直接暴露到公网。
-- 单项目建议不超过 2 万张图片，并发标注建议不超过 8 人。
-- 导出划分以图片为单位，不是分层抽样，类别极不均衡时需人工调整。
+Bug reports are as valuable as code. If something breaks, please include the version from the startup banner, your Windows version, and the steps that trigger it — a screenshot of the console window helps more than a description. If a format you need is missing, open an issue with a small sample file and the directory layout you expect; format support is usually a contained change.
 
-## 许可证
+Translations, corrections to the manual, and notes on how your group actually uses the tool are welcome too. For larger changes — a new storage backend, a different locking model, a rewritten frontend — open an issue first so we can agree on the shape before you spend a weekend on it.
 
-[MIT](LICENSE)
+There is no CLA and no fixed roadmap. Pull requests go to `main`; keep the diff focused, and describe what you tested.
+
+## License
+
+[MIT](LICENSE). Commercial use, modification, and redistribution are permitted.
