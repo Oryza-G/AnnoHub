@@ -3,6 +3,7 @@
 局域网多人协作图像标注平台。单文件部署在 Windows 主机上，成员用浏览器访问，客户端零安装。面向需要自建数据集的研究组与小团队，覆盖大图裁切、多人标注、模型预标注与多格式导出。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Oryza-G/AnnoHub?label=release)](https://github.com/Oryza-G/AnnoHub/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
@@ -33,7 +34,7 @@ AnnoHub 把这四步放进同一个界面，数据始终留在本地，不依赖
 
 ### 方式一：直接用打包版
 
-1. 从 Releases 下载 `AnnoHub.exe`，放进一个空目录。
+1. 从 [Releases](https://github.com/Oryza-G/AnnoHub/releases/latest) 下载 `AnnoHub.exe`（约 49 MB），放进一个空目录。
 2. 双击运行。首次启动在同目录生成 `data` 文件夹。
 3. 浏览器自动打开 `http://127.0.0.1:8765`，用 `admin / admin123` 登录。
 4. 把启动窗口中打印的地址发给同事，他们用浏览器打开即可。
@@ -45,6 +46,8 @@ AnnoHub 把这四步放进同一个界面，数据始终留在本地，不依赖
 要求 Python 3.10 以上。
 
 ```bash
+git clone https://github.com/Oryza-G/AnnoHub.git
+cd AnnoHub
 pip install -r requirements.txt
 python run.py
 ```
