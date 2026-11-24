@@ -9,7 +9,9 @@ Self-hosted image annotation server for Windows. One executable, one LAN address
 ![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
-![AnnoHub annotation canvas with tile-level labels](docs/screenshots/04-annotate.jpg)
+![Rice seedling detection with model-predicted boxes](docs/screenshots/04-annotate.jpg)
+
+*Pre-label output from the rice-seedling ONNX model on a 512×512 tile. The red boxes are model predictions; the number on each box is confidence.*
 
 ## Why this exists
 
@@ -28,6 +30,8 @@ Data never leaves the machine running the executable.
 **Annotate.** Rectangles, polygons, polylines, points, a freehand brush that closes into a polygon, and whole-image classification. All drawing tools stay available in every project type except classification — the type only decides which tool is preselected and which export format is the default.
 
 **Share the work.** Self-service sign-up with admin approval, role assignment, and task allocation by member or by source group. Progress counts per member, per group, per project.
+
+**Work at tile scale.** The annotation list fetches project metadata once and renders only the source groups you expand, so a 1,845-tile project opens fully listed instead of asking you to click “load more” twelve times. Collapsing a group is a CSS toggle, not a full list rebuild.
 
 **Pre-label.** Load an ONNX model — detection, instance segmentation, or classification — and run it on one image, a selection, or a whole batch. Review and correct instead of drawing from zero. No PyTorch or CUDA required; onnxruntime on CPU is enough for tile-sized inference.
 
@@ -134,6 +138,7 @@ annohub/
 
 These are real, and worth reading before you commit a dataset to it.
 
+- Interface and manual are Chinese only. There is no i18n layer yet; the API and code comments are English, but labels and error messages are Chinese.
 - ONNX only. A `.pt` file has to be exported first with `tools/export_onnx.py`.
 - Images, not video. No frame extraction, no DICOM series.
 - Built for a LAN. No TLS, no hardening against the public internet. Do not port-forward it.
