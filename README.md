@@ -31,7 +31,7 @@ Data never leaves the machine running the executable.
 
 **Share the work.** Self-service sign-up with admin approval, role assignment, and task allocation by member or by source group. Progress counts per member, per group, per project.
 
-**Work at tile scale.** The annotation list fetches project metadata once and renders only the source groups you expand, so a 1,845-tile project opens fully listed instead of asking you to click “load more” twelve times. Collapsing a group is a CSS toggle, not a full list rebuild.
+**Work at tile scale.** The annotation list fetches project metadata once and renders only the source groups you expand, so a 1,845-tile project loads its full list in one pass; expanding a group is instant, with no chain of “load more” clicks. Collapsing a group is a CSS toggle, not a full list rebuild.
 
 **Pre-label.** Load an ONNX model — detection, instance segmentation, or classification — and run it on one image, a selection, or a whole batch. Review and correct instead of drawing from zero. No PyTorch or CUDA required; onnxruntime on CPU is enough for tile-sized inference.
 
