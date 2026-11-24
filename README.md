@@ -9,9 +9,9 @@ Self-hosted image annotation server for Windows. One executable, one LAN address
 ![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
-![Rice seedling detection with model-predicted boxes](docs/screenshots/04-annotate.jpg)
+![AnnoHub annotation workbench with pre-labeled rice seedlings](docs/screenshots/04-annotate.jpg)
 
-*Pre-label output from the rice-seedling ONNX model on a 512×512 tile. The red boxes are model predictions; the number on each box is confidence.*
+*The annotation workbench after a single pre-label run. All 26 boxes come from the ONNX model at threshold 0.50; every row in the label list carries an AI tag, and the number on each box is its confidence.*
 
 ## Why this exists
 

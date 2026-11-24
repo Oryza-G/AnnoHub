@@ -9,9 +9,9 @@
 ![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
-![水稻秧苗检测结果](docs/screenshots/04-annotate.jpg)
+![标注工作台与预标注结果](docs/screenshots/04-annotate.jpg)
 
-*水稻秧苗模型在 512×512 小块上的预标注结果。红框是模型预测，框上的数字为置信度。*
+*一次预标注之后的标注工作台。26 个框全部由 ONNX 模型在阈值 0.50 下生成，右侧标注列表每行带 AI 标记，框上数字为置信度。*
 
 ## 为什么做这个
 
