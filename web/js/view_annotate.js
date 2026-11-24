@@ -31,7 +31,8 @@ export async function renderAnnotate(root, ctx) {
     draft: null,           // {geom_type, pts:[[x,y]], cursor:[x,y]}
     dirty: false, saving: false, savedAt: null,
     undo: [], redo: [],
-    list: [], listTotal: 0, locked: new Set(), groups: [],
+    list: [], listTotal: 0, locked: new Set(), groups: [], counts: {},
+    listLoading: false,
     model: null, conf: 0.25, iou: 0.45,
     cls: '',
     busy: false,
@@ -40,9 +41,12 @@ export async function renderAnnotate(root, ctx) {
   let raf = null, hbTimer = null, autoTimer = null, spaceDown = false;
   let ALLOWED = ['rect'];
   let isClassify = false;
-  // 图片列表的折叠状态与文件名筛选：必须在 loadFilmstrip() 之前初始化，
-  // 否则首次渲染会踩 TDZ（Cannot access before initialization）。
-  const collapsedGroups = new Set();
+  // 图片列表：展开组一次渲染到 GROUP_ROWS 行，折叠只切 class 不重建 DOM。
+  // 1845 张图全量 innerHTML 加逐行绑事件会明显卡顿，这里改为一次性取全元数据、
+  // 分组渲染、事件委托；2000 行以内直接全见，更大的组才分批。
+  const GROUP_ROWS = 2000;
+  const expandedGroups = new Set();
+  const groupRows = new Map();
   let filterText = '';
 
   // ------------------------------------------------------------ DOM
@@ -217,16 +221,36 @@ export async function renderAnnotate(root, ctx) {
   // 只列文件名，不加载缩略图：几千张图逐张请求缩略图既慢又吃内存，
   // 标的时候真正需要的是"这一组还有几张没做"，文件名比小图更好扫。
 
-  async function loadFilmstrip(more = false) {
-    const offset = more ? S.list.length : 0;
-    const [d, gd] = await Promise.all([
-      get(`/api/projects/${projectId}/images?limit=200&offset=${offset}`),
-      more ? Promise.resolve(null) : get(`/api/projects/${projectId}/groups`).catch(() => null),
-    ]);
-    S.list = more ? S.list.concat(d.items) : d.items;
-    S.listTotal = d.total;
-    S.counts = d.counts || {};
+  async function loadFilmstrip() {
+    S.listLoading = true;
+    const gd = await get(`/api/projects/${projectId}/groups`).catch(() => null);
     if (gd) S.groups = gd.groups || [];
+
+    // 分页取全量元数据（compact 只返回列表需要的字段）。不再用“加载更多”按钮，
+    // 否则 1500 张的第二组要连点十几次才看得见，组内计数也会只按已加载的部分算。
+    const PAGE = 1000;
+    let offset = 0;
+    let total = 0;
+    S.list = [];
+    do {
+      const d = await get(
+        `/api/projects/${projectId}/images?compact=1&limit=${PAGE}&offset=${offset}`,
+      );
+      const items = d.items || [];
+      S.list = S.list.concat(items);
+      total = d.total ?? S.list.length;
+      S.listTotal = total;
+      S.counts = d.counts || S.counts;
+      offset = S.list.length;
+      if (!items.length) break;
+    } while (S.list.length < total);
+
+    S.listLoading = false;
+    S.listTotal = total || S.list.length;
+    if (S.imageId && S.image && !S.list.some((x) => x.id === S.imageId)) {
+      S.list.unshift(S.image);
+      S.listTotal = Math.max(S.listTotal, S.list.length);
+    }
     renderFilmstrip();
   }
 
@@ -240,20 +264,12 @@ export async function renderAnnotate(root, ctx) {
     return g ? g.name : (id ? `分组 ${id}` : '未分组');
   }
 
-  function renderFilmstrip() {
-    const film = $('#film');
-    if (!film) return;
+  function filteredItems() {
     const kw = filterText.trim().toLowerCase();
-    const items = kw ? S.list.filter((it) => fileName(it).toLowerCase().includes(kw)) : S.list;
-    $('#fcount').textContent = kw
-      ? `${items.length} 命中 / ${S.listTotal}`
-      : `${S.list.length}/${S.listTotal}`;
+    return kw ? S.list.filter((it) => fileName(it).toLowerCase().includes(kw)) : S.list;
+  }
 
-    if (!items.length) {
-      film.innerHTML = `<div class="hint" style="padding:14px 8px">${kw ? '没有匹配的文件名' : '这个项目还没有图片'}</div>`;
-      return;
-    }
-
+  function groupBuckets(items) {
     // 按来源分组：组号在文件名里也在最前面，两边顺序对得上
     const order = [];
     const buckets = new Map();
@@ -263,57 +279,185 @@ export async function renderAnnotate(root, ctx) {
       if (!buckets.has(k)) { buckets.set(k, []); order.push(k); }
       buckets.get(k).push(it);
     });
+    return { order, buckets };
+  }
 
+  function rowsHTML(arr) {
+    return arr.map((it) => {
+      const st = ui.STATUS[it.status] || ui.STATUS.todo;
+      const lockedOther = it.locked_by && it.id !== S.imageId;
+      return `<div class="il-row ${it.id === S.imageId ? 'active' : ''} ${lockedOther ? 'locked' : ''}"
+        data-id="${it.id}" title="#${it.id} ${ui.esc(fileName(it))}${it.locked_by ? ' · 占用：' + ui.esc(it.locked_by) : ''}">
+        <span class="st" style="background:${st.color}" title="${st.label}"></span>
+        <span class="nm">${ui.esc(fileName(it))}</span>
+        ${lockedOther ? `<span class="lk">${ui.icon('lock', 11)}</span>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function moreHTML(arr, k, shown) {
+    if (shown >= arr.length) return '';
+    return `<div class="il-more"><button class="btn btn-sm" data-more="${k}">显示更多（剩 ${arr.length - shown} 张）</button></div>`;
+  }
+
+  function groupBodyHTML(arr, k) {
+    const shown = Math.min(arr.length, groupRows.get(k) || GROUP_ROWS);
+    return rowsHTML(arr.slice(0, shown)) + moreHTML(arr, k, shown);
+  }
+
+  function renderFilmstrip() {
+    const film = $('#film');
+    if (!film) return;
+    const kw = filterText.trim().toLowerCase();
+    const items = filteredItems();
+    $('#fcount').textContent = S.listLoading
+      ? `加载中 ${S.list.length}/${S.listTotal || '…'}`
+      : (kw ? `${items.length} 命中 / ${S.listTotal}` : `${S.list.length}/${S.listTotal}`);
+
+    if (!items.length) {
+      film.innerHTML = `<div class="hint" style="padding:14px 8px">${kw ? '没有匹配的文件名' : '这个项目还没有图片'}</div>`;
+      return;
+    }
+
+    const { order, buckets } = groupBuckets(items);
     film.innerHTML = order.filter((k) => buckets.get(k).length).map((k) => {
       const arr = buckets.get(k);
+      const g = (S.groups || []).find((x) => x.id === k);
+      // 分组计数优先用 groups 接口的真实总数，避免只加载了一部分时显示成 655/655
+      const total = kw ? arr.length : (g ? g.n_now : arr.length);
+      // 完成数从已加载的完整列表实时算，标完一张后组头能立刻 +1；
+      // 组总数仍用 groups 接口的值，避免分页加载期间显示成已加载的数量。
       const nDone = arr.filter((x) => x.status === 'done' || x.status === 'reviewed').length;
       const hasActive = arr.some((x) => x.id === S.imageId);
-      const isCollapsed = collapsedGroups.has(k) && !hasActive;
+      if (hasActive) expandedGroups.add(k);
+      // 筛选状态下把命中的组直接展开，否则搜到了却看不见结果
+      if (kw) expandedGroups.add(k);
+      const expanded = expandedGroups.has(k);
       return `
-        <div class="il-group ${isCollapsed ? 'collapsed' : ''}" data-g="${k}">
+        <div class="il-group ${expanded ? '' : 'collapsed'}" data-g="${k}">
           <div class="il-group-head" data-gt="${k}">
             <span class="cv">${ui.icon('chevronDown', 12)}</span>
             <b title="${ui.esc(batchName(k))}">${ui.esc(batchName(k))}</b>
-            <span class="n">${nDone}/${arr.length}</span>
+            <span class="n">${nDone}/${total}</span>
           </div>
-          <div class="il-items">
-            ${arr.map((it) => {
-              const st = ui.STATUS[it.status] || ui.STATUS.todo;
-              const lockedOther = it.locked_by && it.id !== S.imageId;
-              return `<div class="il-row ${it.id === S.imageId ? 'active' : ''} ${lockedOther ? 'locked' : ''}"
-                data-id="${it.id}" title="#${it.id} ${ui.esc(fileName(it))}${it.locked_by ? ' · 占用：' + ui.esc(it.locked_by) : ''}">
-                <span class="st" style="background:${st.color}" title="${st.label}"></span>
-                <span class="nm">${ui.esc(fileName(it))}</span>
-                ${lockedOther ? `<span class="lk">${ui.icon('lock', 11)}</span>` : ''}
-              </div>`;
-            }).join('')}
-          </div>
+          <div class="il-items">${expanded ? groupBodyHTML(arr, k) : ''}</div>
         </div>`;
-    }).join('') + (S.list.length < S.listTotal
-      ? `<div class="il-more"><button class="btn btn-sm" id="more-imgs">加载更多（还有 ${S.listTotal - S.list.length} 张）</button></div>`
-      : '');
+    }).join('');
 
-    film.querySelectorAll('[data-gt]').forEach((el) => {
-      el.onclick = () => {
-        const k = Number(el.dataset.gt);
-        if (collapsedGroups.has(k)) collapsedGroups.delete(k);
-        else collapsedGroups.add(k);
-        renderFilmstrip();
-      };
-    });
-    film.querySelectorAll('[data-id]').forEach((el) => {
-      el.onclick = () => openImage(Number(el.dataset.id), true);
-    });
-    const moreBtn = film.querySelector('#more-imgs');
-    if (moreBtn) moreBtn.onclick = () => loadFilmstrip(true);
-
-    const active = film.querySelector('.il-row.active');
-    if (active) active.scrollIntoView({ block: 'nearest' });
+    markActiveRow();
   }
 
+  function markActiveRow() {
+    const film = $('#film');
+    if (!film) return;
+    film.querySelectorAll('.il-row.active').forEach((el) => el.classList.remove('active'));
+    if (!S.imageId) return;
+    const el = film.querySelector(`.il-row[data-id="${S.imageId}"]`);
+    if (el) {
+      el.classList.add('active');
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function fillGroup(k, groupEl) {
+    if (!groupEl) return;
+    const arr = filteredItems().filter((it) => (it.batch_id ?? 0) === k);
+    const body = groupEl.querySelector('.il-items');
+    if (!body) return;
+    body.innerHTML = groupBodyHTML(arr, k);
+    markActiveRow();
+  }
+
+  function toggleGroup(k) {
+    const film = $('#film');
+    const groupEl = film && film.querySelector(`[data-g="${k}"]`);
+    if (!groupEl) return;
+    if (groupEl.classList.contains('collapsed')) {
+      expandedGroups.add(k);
+      const body = groupEl.querySelector('.il-items');
+      if (body && !body.children.length) fillGroup(k, groupEl);
+      groupEl.classList.remove('collapsed');
+    } else {
+      expandedGroups.delete(k);
+      groupEl.classList.add('collapsed');
+    }
+  }
+
+  function revealActive() {
+    const film = $('#film');
+    if (!film) return;
+    if (!S.imageId) { markActiveRow(); return; }
+    const it = S.list.find((x) => x.id === S.imageId);
+    if (!it) { renderFilmstrip(); return; }
+    const k = it.batch_id ?? 0;
+    expandedGroups.add(k);
+    const kw = filterText.trim().toLowerCase();
+    if (kw && !fileName(it).toLowerCase().includes(kw)) {
+      filterText = '';
+      const search = $('#fsearch');
+      if (search) search.value = '';
+    }
+    const arr = filteredItems().filter((x) => (x.batch_id ?? 0) === k);
+    const idx = arr.findIndex((x) => x.id === S.imageId);
+    const shown = groupRows.get(k) || GROUP_ROWS;
+    if (idx >= shown) groupRows.set(k, idx + GROUP_ROWS);
+
+    const groupEl = film.querySelector(`[data-g="${k}"]`);
+    if (groupEl && groupEl.classList.contains('collapsed')) {
+      const body = groupEl.querySelector('.il-items');
+      if (body && !body.children.length) fillGroup(k, groupEl);
+      groupEl.classList.remove('collapsed');
+    }
+    if (film.querySelector(`.il-row[data-id="${S.imageId}"]`)) markActiveRow();
+    else renderFilmstrip();
+  }
+
+  function refreshGroupCount(k) {
+    const film = $('#film');
+    const el = film && film.querySelector(`[data-g="${k}"] .il-group-head .n`);
+    if (!el) return;
+    const arr = filteredItems().filter((it) => (it.batch_id ?? 0) === k);
+    const g = (S.groups || []).find((x) => x.id === k);
+    const kw = filterText.trim().toLowerCase();
+    const total = kw ? arr.length : (g ? g.n_now : arr.length);
+    const nDone = arr.filter((x) => x.status === 'done' || x.status === 'reviewed').length;
+    el.textContent = `${nDone}/${total}`;
+  }
+
+  function updateFilmRow(it) {
+    const film = $('#film');
+    if (!film || !it) return;
+    const row = film.querySelector(`.il-row[data-id="${it.id}"]`);
+    if (row) {
+      const st = ui.STATUS[it.status] || ui.STATUS.todo;
+      const dot = row.querySelector('.st');
+      if (dot) { dot.style.background = st.color; dot.title = st.label; }
+    }
+    refreshGroupCount(it.batch_id ?? 0);
+  }
+
+  $('#film').addEventListener('click', (e) => {
+    const head = e.target.closest('[data-gt]');
+    if (head) { toggleGroup(Number(head.dataset.gt)); return; }
+    const more = e.target.closest('[data-more]');
+    if (more) {
+      const k = Number(more.dataset.more);
+      groupRows.set(k, (groupRows.get(k) || GROUP_ROWS) + GROUP_ROWS);
+      fillGroup(k, more.closest('.il-group'));
+      return;
+    }
+    const row = e.target.closest('[data-id]');
+    if (row) openImage(Number(row.dataset.id), true);
+  });
+
+  let filterTimer = null;
   $('#fsearch').addEventListener('input', (e) => {
     filterText = e.target.value;
-    renderFilmstrip();
+    clearTimeout(filterTimer);
+    filterTimer = setTimeout(() => {
+      groupRows.clear();
+      renderFilmstrip();
+    }, 120);
   });
 
   // ------------------------------------------------------------ 打开图片
@@ -347,7 +491,7 @@ export async function renderAnnotate(root, ctx) {
         S.list.unshift(S.image);
         S.listTotal = Math.max(S.listTotal, S.list.length);
       }
-      renderFilmstrip();
+      revealActive();
       renderBoxList();
       updateTopbar();
       updateInfo();
@@ -1364,7 +1508,7 @@ export async function renderAnnotate(root, ctx) {
       const it = S.list.find((x) => x.id === S.imageId);
       if (it) { it.status = r.status; it.n_labels = r.n_labels; }
       updateTopbar();
-      renderFilmstrip();
+      updateFilmRow(it || S.image);
       updateInfo();
       return true;
     } catch (e) {
@@ -1421,7 +1565,7 @@ export async function renderAnnotate(root, ctx) {
       S.imageId = null;
       stopHeartbeat();
       ui.toast('当前范围都标完了', 'ok', 3000);
-      renderFilmstrip();
+      markActiveRow();
       updateTopbar();
     }
   }

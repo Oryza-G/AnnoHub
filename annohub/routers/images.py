@@ -91,6 +91,7 @@ def list_images(
     has_labels: bool | None = None,
     limit: int = 200,
     offset: int = 0,
+    compact: int = 0,
     user: dict = Depends(auth.current_user),
 ):
     conn = db.get_conn()
@@ -124,9 +125,15 @@ def list_images(
 
     wsql = " WHERE " + " AND ".join(where)
     total = conn.execute(f"SELECT COUNT(*) c FROM images i{wsql}", args).fetchone()["c"]
+    if compact:
+        cols = ("i.id, i.project_id, i.batch_id, i.rel_path, i.status, i.n_labels,"
+                " i.width, i.height, i.is_empty, i.prelabeled, i.updated_at, i.assignee_id")
+        join = ""
+    else:
+        cols = "i.*, u.display_name AS assignee_name"
+        join = " LEFT JOIN users u ON u.id=i.assignee_id"
     rows = conn.execute(
-        f"SELECT i.*, u.display_name AS assignee_name FROM images i"
-        f" LEFT JOIN users u ON u.id=i.assignee_id{wsql}"
+        f"SELECT {cols} FROM images i{join}{wsql}"
         f" ORDER BY i.id LIMIT ? OFFSET ?",
         args + [max(1, min(1000, limit)), max(0, offset)],
     ).fetchall()
