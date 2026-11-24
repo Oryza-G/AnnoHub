@@ -6,6 +6,7 @@
 - 全局默认模型 + 项目级指定模型，批量预标注时也可临时指定
 """
 import json
+import sys
 import threading
 import time
 from pathlib import Path
@@ -20,6 +21,32 @@ _MAX_CACHED = 3
 
 
 # ------------------------------------------------------------------ 元数据同步
+
+_warned_missing = False
+
+
+def _warn_missing_models(d: Path) -> None:
+    """库里记着模型但目录里没有文件时，在控制台说清缺什么、该放哪里。
+
+    换机器部署时只拷了 exe 与 data、漏掉 models 目录，就会走到这里。
+    """
+    global _warned_missing
+    if _warned_missing:
+        return
+    names = [r["file_name"] for r in db.get_conn().execute("SELECT file_name FROM models").fetchall()]
+    missing = [n for n in names if not (d / n).exists()]
+    if not missing:
+        return
+    _warned_missing = True
+    print(f"[AnnoHub] 模型目录中缺少 {len(missing)} 个模型文件：{d}", file=sys.stderr)
+    for n in missing:
+        print(f"[AnnoHub]   缺失 {n}", file=sys.stderr)
+    print(
+        "[AnnoHub] 预标注会提示模型不存在。请把 onnx 与同名 json 放进该目录，"
+        "或用环境变量 ANNOTOHUB_MODELS 指向模型实际所在目录。",
+        file=sys.stderr,
+    )
+
 
 def sync_models() -> int:
     """把 models/ 目录里的 onnx 同步进库，返回新增数量。"""
@@ -66,6 +93,8 @@ def sync_models() -> int:
         if first:
             with db.cursor(write=True) as c:
                 c.execute("UPDATE models SET is_default=1 WHERE id=?", (first["id"],))
+
+    _warn_missing_models(d)
     return added
 
 
